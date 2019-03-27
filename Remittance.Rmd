@@ -1,0 +1,157 @@
+---
+title: "Remittances"
+author: "Arturo Torre"
+date: "1/12/2018"
+output: html_document
+---
+
+## Mexican Industrial Survey {.tabset .tabset-fade .tabset-pills}
+
+###Intro
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(ggplot2)
+library(magrittr)
+library(tidyr)
+library(knitr)
+library(reshape)
+library(viridis)
+library(gridExtra)
+library (scales)
+library(gridExtra)
+```
+
+In this work we will analyze the remittance flow to Mexico using data from BANXICO.
+
+```{r, include=FALSE}
+#We load the data base, we use the file encoding feature because the data set contains special characters in spanish
+
+rtotal <- read.csv(file="/Users/arturotorre/Desktop/Git/Remittances/Data/Total.csv", header=TRUE, sep=",", stringsAsFactors = FALSE, fileEncoding="latin1")
+```
+
+```{r,include=FALSE}
+#As you can see we have a "wide" dataset and will transform it to a "long" format for better handling. At the same time, we will format some columns
+rtotal$Fecha <- as.Date(rtotal$Fecha, "%d/%m/%y")
+
+rtotal <- rtotal %>% gather(FormaPago, Monto, Money.Orders, Cheques.Personales, Transferencias.Electronicas, Efectivo)
+
+
+
+```
+
+
+```{r, include=FALSE}
+
+g1 <-  ggplot(data = rtotal, aes(x=Fecha, y=Monto, fill=FormaPago)) + 
+  geom_bar(stat="identity") +
+  xlab('Fecha') +
+  ylab('Monto') +
+  ggtitle("Evolución de las remesas hacia México") +
+  theme(plot.title = element_text(hjust = .5))  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_smooth(color="black")
+  
+
+```
+
+```{r, fig.width=20, warning=FALSE}
+g1
+```
+
+As we can see, remittances have grown over time. At the same time, we may observe that electronic transfers have been consolidated as the main method to transfer money to Mexico. We also notice that remittances have a cyclic behavior having peaks between May and June and later in December. 
+
+###Inflows
+
+In this section we will analyze the inflow of remittances from USA.
+
+```{r, include=FALSE}
+#We load the data base, we use the file encoding feature because the data set contains special characters in spanish
+
+edo <- read.csv(file="/Users/arturotorre/Desktop/Git/Remittances/Data/Inflowedo.csv", header=TRUE, sep=",", stringsAsFactors = FALSE, fileEncoding="latin1")
+```
+
+
+
+```{r,include=FALSE}
+#As you can see we have a "wide" dataset and will transform it to a "long" format for better handling. At the same time, we will format some columns. We will filter the values for 2018.
+edo$Fecha <- as.Date(edo$Fecha, "%d/%m/%y")
+
+totaledo<- edo %>% gather(Estado, Monto, Alabama, Alaska, Arizona, Arkansas, California, Colorado, Connecticut, Delaware, Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kansas, Kentucky, Luisiana, Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississipi, Misuri, Montana, Nebraska, Nevada, Nuevo.Hampshire, Nueva.Jersey, Nuevo.Mexico, Nueva.York, Carolina.Del.Norte, Dakota.Del.Norte, Ohio, Oklahoma, Oregon, Pensilvania, Puerto.Rico, Rhode.Island, Carolina.Del.Sur, Dakota.Del.Sur, Tennessee, Texas, Utah, Vermont, Virginia, Washington, Washington..D.C., West.Virginia, Wisconsin, Wyoming, No.Identificado) %>% filter(Fecha >= as.Date("2018-01-01"))
+
+  
+
+```
+
+
+```{r}
+e <-  ggplot(data = totaledo, aes(x=Fecha, y=Monto)) + 
+  geom_bar(stat="identity") +
+  xlab('Fecha') +
+  ylab('Monto') +
+  ggtitle("Evolución de las remesas hacia México por Estado") +
+  theme(plot.title = element_text(hjust = .5))  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_smooth(color="black") + 
+  facet_wrap (~Estado, ncol= 5)
+```
+
+```{r, warning=FALSE, fig.width=10, fig.height=10}
+e
+```
+
+
+###Outflows
+
+In this section we will analyze the outflows from Mexico to other countries in the world.
+
+```{r, include=FALSE}
+#We load the data base, we use the file encoding feature because the data set contains special characters in spanish
+
+outcountry <- read.csv(file="/Users/arturotorre/Desktop/Git/Remittances/Data/OutflowsCountry.csv", header=TRUE, sep=",", stringsAsFactors = FALSE, fileEncoding="latin1")
+```
+
+```{r, include=FALSE}
+
+outtot1 <- outcountry %>% gather ("periodo", "monto", Ene.Mar.2018, Abr.Jun.2018, Jul.Sep.2018) %>% group_by(periodo) %>% summarise(monto=sum(monto))
+
+
+#Ordenamos el subconjunto en base al órden de los periodos
+
+outtot1$periodo <- factor(outtot1$periodo, levels= c("Ene.Mar.2018", "Abr.Jun.2018", "Jul.Sep.2018"))
+```
+
+```{r, include=FALSE}
+
+g2 <-  ggplot(data = outtot1, aes(x=periodo, y=monto)) + 
+  geom_bar(stat="identity") +
+  xlab('Fecha') +
+  ylab('Monto') +
+  ggtitle("Evolución de las remesas desde México") +
+  theme(plot.title = element_text(hjust = .5))  +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) 
+  
+
+```
+
+```{r, warning=FALSE}
+g2
+```
+
+
+```{r, include=FALSE}
+outtot2 <- outcountry %>% gather ("periodo", "monto", Ene.Mar.2018, Abr.Jun.2018, Jul.Sep.2018) %>% group_by(Pais) %>% summarise(monto=sum(monto))
+
+
+```
+
+```{r}
+outtot2[order(-outtot2$monto), ]
+```
+
+As we can see most of the remmitance outflow goes to USA, Colombia and China (in million dolars).
+
+
+
